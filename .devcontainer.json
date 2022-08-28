@@ -1,0 +1,14 @@
+{
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:3.9",
+    "containerUser": "vscode",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "donjayamanne.python-extension-pack",
+                "dbaeumer.vscode-eslint"
+            ]
+        }
+    },
+    "runArgs": ["--rm"],
+    "shutdownAction": "stopContainer"
+}
