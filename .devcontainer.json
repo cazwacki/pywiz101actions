@@ -15,7 +15,7 @@
             ]
         }
     },
-    "postCreateCommand": "pip3 install pylint pyautogui opencv-python pillow",
+    "onCreateCommand": "pip3 install pylint pyautogui opencv-python pillow",
     "runArgs": ["--rm"],
     "shutdownAction": "stopContainer"
 
