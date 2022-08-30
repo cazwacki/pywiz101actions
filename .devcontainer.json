@@ -3,15 +3,17 @@
     "containerUser": "vscode",
     "customizations": {
         "vscode": {
+            "settings": {
+                "python.linting.enabled": true,
+                "python.setLinter": "pylint"
+            },
             "extensions": [
                 "donjayamanne.python-extension-pack",
                 "dbaeumer.vscode-eslint"
             ]
         }
     },
-
     "postCreateCommand": "pip3 install pylint pyautogui opencv-python pillow",
-
     "runArgs": ["--rm"],
     "shutdownAction": "stopContainer"
 
