@@ -5,7 +5,9 @@
         "vscode": {
             "settings": {
                 "python.linting.enabled": true,
-                "python.setLinter": "pylint"
+                "python.linting.pylintEnabled": true,
+                "python.setLinter": "pylint",
+                "python.linting.pylintUseMinimalCheckers": false
             },
             "extensions": [
                 "donjayamanne.python-extension-pack",
