@@ -1,15 +1,18 @@
-# pip3 install pyautogui
-# pip3 install opencv-python
-# pip3 install pillow
+"""
+Automate tedious tasks in Wizard 101.
+"""
+# pip3 install pyautogui opencv-python pillow
 
-import math
-import time
-import random
 import logging
+import math
+import random
+import time
 from enum import Enum
+
 import pyautogui
 
-WIZ_TYPE="balance"
+WIZ_TYPE="ice"
+SCREEN_OFFSET=(0, 0)
 
 log = logging.getLogger(__name__)
 
@@ -94,18 +97,26 @@ class Position(Enum):
     SUN, EYE, STAR, and MOON represent player positions.
     DAGGER, KEY, RUBY, and SPIRAL represent opponent positions.
     """
-    SUN = ((1550, 650), ())
-    EYE = ((1200, 950), ())
-    STAR = ((850, 950), ())
-    MOON = ((500, 950), ())
-    DAGGER = ((500, 950), ())
-    KEY = ((500, 950), ())
-    RUBY = ((500, 950), ())
-    SPIRAL = ((500, 950), ())
+    SUN = ((1550, 650), (0, 0))
+    EYE = ((1200, 950), (0, 0))
+    STAR = ((850, 950), (0, 0))
+    MOON = ((500, 950), (0, 0))
+    DAGGER = ((500, 950), (0, 0))
+    KEY = ((500, 950), (0, 0))
+    RUBY = ((500, 950), (0, 0))
+    SPIRAL = ((500, 950), (0, 0))
 
-    def __init__(self, click_position, pip_position):
-        self.click_position = click_position
-        self.pip_position = pip_position
+    def __init__(self, click_pos, pip_pos):
+        """Initializes the location of various elements of a position.
+
+        Args:
+            click_pos (x(int), y(int)): Where to click on the screen to select the entity
+                in this location.
+            pip_pos (x(int), y(int)): The top-left corner of the position where the entity's
+                pips are located.
+        """
+        self.click_position = (click_pos[0] + SCREEN_OFFSET[0], click_pos[1] + SCREEN_OFFSET[1])
+        self.pip_position = (pip_pos[0] + SCREEN_OFFSET[0], pip_pos[1] + SCREEN_OFFSET[1])
 
     @property
     def click_x(self):
@@ -135,41 +146,41 @@ def find_image(image):
 
     This wrapper to make it easy to consistently change the parameters to the locateOnScreen call.
 
-    Parameters:
-    image (string): The filename of the image to try to locate on the current screen.
+    Args:
+        image (string): The filename of the image to try to locate on the current screen.
 
     Return:
-    (left, top, width, height) (tuple): a 4-integer tuple
+        (left, top, width, height) (tuple): a 4-integer tuple
 
     Raises:
-    pyautogui.ImageNotFoundException: Image was not found on the screen.
+        pyautogui.ImageNotFoundException: Image was not found on the screen.
     """
     return pyautogui.locateOnScreen(image, confidence=0.80)
 
-def move_mouse_to(x_pos, y_pos, duration=0.25):
+def move_mouse_to(location, duration=0.25):
     """Move the mouse to the given cursor location over the given time period
 
-    Parameters:
-    x_pos (int): The X location on the screen to which the mouse should be moved.
-    y_pos (int): The Y location on the screen to which the mouse should be moved.
-    duration (float): How long (in seconds) it should take to move the mouse from
-                      it's current location to the new location.
+    Args:
+        location ((int), (int)): Tuple holding the X, Y position on the screen to
+            which the mouse should be moved.
+        duration (float): How long (in seconds) it should take to move the mouse from
+            it's current location to the new location.
     """
     if duration is None:
         duration = .1 + random.random()/4
-    pyautogui.moveTo(x_pos, y_pos, duration=duration, tween=pyautogui.easeOutQuad)
+    pyautogui.moveTo(location[0], location[1], duration=duration, tween=pyautogui.easeOutQuad)
 
 def find_one_of_images(images, retries=20, delay=0.1):
     """Try to find any one of the given images on the current screen.
 
-    Parameters:
-    images (list[string]): A list of image filenames to try to find on the screen.
-    retries (int): How many times to try to find any of the images on the screen.
-    delay (float): The delay in seconds between each complete scan for images in the list.
+    Args:
+        images (list[string]): A list of image filenames to try to find on the screen.
+        retries (int): How many times to try to find any of the images on the screen.
+        delay (float): The delay in seconds between each complete scan for images in the list.
 
     Returns:
-    String: The name of the file that was found on the screen or None if none of the
-            images were found.
+        String: The name of the file that was found on the screen or None if none of the
+                images were found.
     """
     found = None
 
@@ -191,11 +202,11 @@ def find_one_of_images(images, retries=20, delay=0.1):
 def safe_click_image(image):
     """Safely clicks on the given image on the screen.
 
-    Parameters:
-    image (string): The filename of the image to be clicked upon on the current screen.
+    Args:
+        image (string): The filename of the image to be clicked upon on the current screen.
 
     Raises:
-    pyautogui.ImageNotFoundException: Image was not found on the screen.
+        pyautogui.ImageNotFoundException: Image was not found on the screen.
     """
     log.info("Safely clicking %s.", image)
     location = None
@@ -203,17 +214,33 @@ def safe_click_image(image):
         time.sleep(0.1)
         location = find_image(image)
     x_loc, y_loc = pyautogui.center(location)
-    move_mouse_to(x_loc, y_loc)
+    move_mouse_to((x_loc, y_loc))
     pyautogui.click()
+
+def safe_cast_spell(spell):
+    """Casts a spell during battle.
+
+    Casts the spell and moves the cursor up out of the way to get rid of the
+    magnification effect that happens during battle.
+
+    Args:
+        spell (string): The filename of the spell to be clicked upon on the current screen.
+
+    Raises:
+        pyautogui.ImageNotFoundException: The spell was not found on the screen.
+    """
+    safe_click_image(spell)
+    pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
+
 
 def hold(button, milliseconds):
     """Press and hold a button for a given amount of time.
 
     hold is typically used for pressing various movement keys for some amount of time.
 
-    Parameters:
-    button (string): The character to hold ('w', 'a', 's', 'd' as examples)
-    milliseconds (int): How long to hold the button down.
+    Args:
+        button (string): The character to hold ('w', 'a', 's', 'd' as examples)
+        milliseconds (int): How long to hold the button down.
     """
     log.info("Pressing %s for %dms", button, milliseconds)
     with pyautogui.hold(button):
@@ -228,8 +255,8 @@ def wait_for_image(image):
     of the animation of players and opponents moving to their battle positions and will return
     when the "PASS" button is displayed during the battle screen.
 
-    Parameters:
-    image (string): The filename of the image to wait for.
+    Args:
+        image (string): The filename of the image to wait for.
     """
     log.info("Waiting for %s to show up on the screen.", image)
     image_bounds = None
@@ -243,55 +270,67 @@ def wait_for_image(image):
     log.info("%s found", image)
 
 def calc_delay(destination):
+    """Calculate how much delay to use to move from one point on the screen to another point.
+
+    Calculates the distance between the current point and the destination point and how long
+    it should take to move between points
+
+    Args:
+        destination (x(int), y(int)): The location where the cursor will end up on the screen.
+
+    Returns:
+        seconds (float): The number of seconds to use to move from point to point.
+    """
     current = pyautogui.position()
     distance = math.sqrt((current[0] - destination[0]) ** 2 + (current[1] - destination[1]) ** 2)
     # corner to corner distance is 2,203
     return distance/2500
 
 def click_position(position):
+    """Click on the given battle position
+
+    Click on a battle position.  Can be a teammate for a beneficial spell such as healing or blades.
+    Can be an opponent to target them with a trap or an attack spell.
+
+    Args:
+        position (Position): which battle position to click to select
+    """
     log.info("Clicking on %s", position)
     pyautogui.moveTo(position.click_x, position.click_y,
                      duration=calc_delay((position.click_x, position.click_y)),
                      tween=pyautogui.easeOutQuad)
     pyautogui.click()
 
-def click_sun_player():
-    click_position(Position.SUN)
+def opponent_in_battle(position):
+    """Indicates if an opponent is actively in the battle at the given location.
 
-def click_eye_player():
-    click_position(Position.EYE)
+    opponent_in_battle is typically used before launching the main battle logic.  For example,
+    while farming couch potatoes, it's not uncommon for the dagger splithoof to come into the
+    battle late so a round-one AoE will fail to kill dagger, requiring an extra 2-3 rounds to
+    regain pips to cast another AoE spell.  Instead, the scenario checks to see if the dagger
+    position is occupied and passes a turn if not, giving time for the position to become occupied.
 
-def click_star_player():
-    click_position(Position.STAR)
+    Note that this function can be used in the battle to find which positions can be targeted.
 
-def click_moon_player():
-    click_position(Position.MOON)
+    Returns:
+        True: The opponent is in the given position
+        False: The opponent is not active in the given position.
 
-def click_dagger():
-    pass
-
-def click_key():
-    pass
-
-def click_ruby():
-    pass
-
-def click_spiral():
-    pass
-
-def dagger_in_battle():
-    return True
-
-def key_in_battle():
-    return True
-
-def ruby_in_battle():
-    return True
-
-def spiral_in_battle():
-    return True
+    TODO: Implementation based upon pips at location > 0.
+    """
+    return position == Position.DAGGER or position == Position.KEY
 
 def try_buff(spells):
+    """Try to use the buffer spell to buff the spell
+
+    Args:
+        spells (buffer(string), target_spell(string)): A tuple of the spell to use to buff
+            the spell and the spell to buff.
+
+    Returns:
+        True: The target_spell was able to be buffed.
+        False: Either the buffer or the target_spell was not found.
+    """
     log.info("Using %s to try to buff a spell.", spells)
     result = False
     if len(spells) == 2:
@@ -300,17 +339,29 @@ def try_buff(spells):
             buffer = find_image(spells[0])
             if buffer is not None:
                 cast_spells(spells)
+                pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
                 # Wait for the buff ripple effect to complete.
                 time.sleep(0.4)
                 result = True
     else:
-        log.info("try_buff wants the buffer and the spell, but the length of the input was %d (%s).",
+        log.error("try_buff: invalid input: the length of the input was %d (%s), expected 2.",
                  len(spells), spells)
         return False
     log.info("able to buff using %s?  %s", spells, result)
     return result
 
 def try_buff_blade(target_blade):
+    """Try to buff the given target_blade
+
+    Attempts to use the any of the many blade buffs to buff the target_blade.
+
+    Args:
+        target_blade (string): The filename of the blade to buff.
+
+    Returns:
+        True: The target_blade was able to be buffed.
+        False: Either a buffer or the target_blade was not found.
+    """
     result = False
     log.info("Trying to buff %s", target_blade)
     blade = find_image(target_blade)
@@ -320,20 +371,30 @@ def try_buff_blade(target_blade):
             buffer = find_image(CONST.FIGHT_SPELL_BLADE_BUFFER_2)
         log.info("buffer = %s; blade = %s", buffer, blade)
         if buffer is not None:
-            x,y = pyautogui.center(buffer)
-            move_mouse_to(x, y)
+            move_mouse_to(pyautogui.center(buffer))
             pyautogui.click()
-            x,y = pyautogui.center(blade)
-            move_mouse_to(x, y)
+            move_mouse_to(pyautogui.center(blade))
             pyautogui.click()
-            move_mouse_to(x, y-100)
+            pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
                 # Wait for the buff ripple effect to complete.
             time.sleep(.4)
             result = True
     log.info("Was blade buffed?  %s", result)
     return result
 
-def try_to_blade():
+def try_to_blade(position = Position.SUN):
+    """Try to cast a blade on wizard at the given position.
+
+    Attempts to buff a blade if possible, and then cast the buffed blade or
+    an unbuffed blade if it was not possible to buff one.
+
+    Args:
+        position (Position): Which battle position to target with the blade.
+
+    Returns:
+        True: It was possible to blade the target position.
+        False: It was not possible to cast a blade.
+    """
     log.info("Trying to cast a blade.")
     bladed = False
     try_buff_blade(CONST.FIGHT_SPELL_BLADE)
@@ -347,14 +408,28 @@ def try_to_blade():
             cast_spells([CONST.FIGHT_SPELL_BLADE])
             bladed = True
     if bladed:
-        click_position(Position.SUN)
+        click_position(position)
     log.info("able to blade?  %s", bladed)
     return bladed
 
 def cast_spells(spells, target=None):
+    """Cast the list of spells on the target, or None if the final spell has no target
+
+    Casts a series of spells on the given target.  When the list contains more than one
+    element, it is typically a buffer, the spell to buff, and then the target of the
+    buffed spell (or None for an AoE spell.)
+
+    Args:
+        spells (list(string)): The spells to cast.
+        target (Position, optional): Which possition on the battle field to target with
+             the spell. Defaults to None.
+
+    Raises:
+        pyautogui.ImageNotFoundException: One of the spells could not be found.
+    """
     log.info("Casting %s this turn.", spells)
     for spell in spells:
-        safe_click_image(spell)
+        safe_cast_spell(spell)
     if target is not None:
         click_position(target)
     else:
@@ -362,6 +437,18 @@ def cast_spells(spells, target=None):
         pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
 
 def inventory_calibrate():
+    """Make sure the inventory screen is in a known state.
+
+    inventory_calibrate makes sure that the inventory display is in a known state.  When
+    clicking 'b', the backpack opens to the last tab the user was looking at.  Because
+    the highlighting of the tab may cause problems with the image search recognition,
+    ensure that the current tab displayed is the elixir tab.
+
+    Returns:
+        True: The inventory is now on the elixir tab of the backpack.
+        False: The inventory could not be calibrated, it is unclear which tab is currently
+            displayed.
+    """
     log.info("Calibrating inventory.")
     try:
         safe_click_image(CONST.INV_START)
@@ -375,10 +462,19 @@ def inventory_calibrate():
         return False
 
 def trash_all_items(category):
+    """Throws the non-equipped items in this category in the trash.
+
+    Typically used for pets and mounts, which can not be fed to pets.  For normal equipement,
+    using feed_pet_all_items gets some benefit for the item destruction.
+
+    Args:
+        category (string): The filename of the backpack tab for which non-equiped items
+            will be thrown in the trash.
+    """
     log.info("Trashing all %s.", category)
     safe_click_image(category)
-    x, y = pyautogui.center(find_image(CONST.INV_EQUIPPED))
-    pyautogui.moveTo(x+100, y+50)
+    x_loc, y_loc = pyautogui.center(find_image(CONST.INV_EQUIPPED))
+    pyautogui.moveTo(x_loc+100, y_loc+50)
     time.sleep(0.1)
     pyautogui.click()
 
@@ -390,10 +486,16 @@ def trash_all_items(category):
         safe_click_image(CONST.INV_TRASH_CONFIRM)
 
 def feed_pet_all_items(category):
+    """Feeds non-equipped items in this category to the current pet.
+
+    Args:
+        category (string): The filename of the backpack tab for which non-equiped items
+            will be fed to the current pet.
+    """
     log.info("Feeding pet all %s.", category)
     safe_click_image(category)
-    x, y = pyautogui.center(find_image(CONST.INV_EQUIPPED))
-    pyautogui.moveTo(x+100, y+50)
+    x_loc, y_loc = pyautogui.center(find_image(CONST.INV_EQUIPPED))
+    pyautogui.moveTo(x_loc+100, y_loc+50)
     time.sleep(0.1)
     pyautogui.click()
 
@@ -412,6 +514,8 @@ def feed_pet_all_items(category):
             time.sleep(0.1)
 
 def clear_inventory():
+    """Get rid of items to avoid filling the backpack.
+    """
     # clear inventory of junk
     pyautogui.press(CONST.INV_OPEN_CLOSE)
     if inventory_calibrate():
@@ -424,10 +528,21 @@ def clear_inventory():
         trash_all_items(CONST.INV_MOUNTS)
     pyautogui.press(CONST.INV_OPEN_CLOSE)
 
-def pass_turn():
-    if not try_to_blade():
+def pass_turn(position = Position.SUN):
+    """Cannot attack, so pass this turn in battle.
+
+    If the current deck has blades, if the current hand has a blade, cast that instead
+    of passing.  If the current hand has a buffer, the blade will be buffed before cast.
+    If the current hand does not have any blades in it, the pass button is clicked.
+
+    Args:
+        position (Position, optional): The position that should benefit from passing this
+            turn. Defaults to Position.SUN.
+    """
+    if not try_to_blade(position):
         log.info("Passing since could not blade.")
         safe_click_image(CONST.FIGHT_PASS)
+        pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
         time.sleep(1)
     wait_for_image(CONST.FIGHT_PASS)
 
@@ -458,7 +573,9 @@ def fight_4pip_aoe_battle():
     pips = find_one_of_images([CONST.FIGHT_POWER_PIPS_2,
                                CONST.FIGHT_POWER_PIPS_1,
                                CONST.FIGHT_POWER_PIPS_0])
-    if not key_in_battle() or pips == CONST.FIGHT_POWER_PIPS_0 or pips == CONST.FIGHT_POWER_PIPS_1:
+    if not opponent_in_battle(Position.KEY) or \
+        pips == CONST.FIGHT_POWER_PIPS_0 or \
+        pips == CONST.FIGHT_POWER_PIPS_1:
         pass_turn()
     activity = CONST.FIGHT_PASS
     while activity == CONST.FIGHT_PASS:
@@ -510,6 +627,11 @@ def help_fight_4pip_aoe_battle(position):
     log.info("Battle complete")
 
 def couchpotato_helper():
+    """Logic to help someone farm couch potatoes.
+
+    This scenario waits for a battle to start.  It expects to be in Grizzleheim at
+    Savarstaad Pass and battling the Splithoofs.
+    """
     while True:
         for _ in range(100):
             help_fight_4pip_aoe_battle(Position.EYE)
@@ -524,6 +646,11 @@ def couchpotato_helper():
         hold('w', 1000)
 
 def couchpotatoes():
+    """Logic to farm couch potatoes.
+
+    This scenario waits for a battle to start.  It expects to be in Grizzleheim at
+    Savarstaad Pass and battling the Splithoofs.
+    """
     while True:
         for until_out_of_mana in range(2):
             # 40 battles
@@ -549,11 +676,18 @@ def couchpotatoes():
             raise SystemExit from no_potions
 
 def rattlebones():
+    """Logic to farm Rattlebones Exalted Duels.
+
+    This scenario waits for a battle to start.  It expects to be in Grizzleheim at
+    Savarstaad Pass and battling the Splithoofs.
+    """
     while True:
-        for a in range(2):
+        for battles_before_popping_a_potion in range(2):
             # 40 battles
-            for b in range(40):
-                log.info("a = %s, b = %s", a, b)
+            for battles_before_clearing_inventory in range(40):
+                log.info(("battles_before_popping_a_potion = %d, "
+                        "battles_before_clearing_inventory = %d"),
+                         battles_before_popping_a_potion, battles_before_clearing_inventory)
                 fight_4pip_aoe_battle()
                 hold('a', 680)
                 hold('w', 3000)
@@ -571,18 +705,36 @@ def rattlebones():
             raise SystemExit from no_potions
 
 def instructions():
-    print("1. Set your Wizard101 to be 1920x1080, windowed mode.")
-    print("2. In combat, take a screenshot of a small part of your card's picture and save it here as \"spell.png\".")
-    print("3. Clear your inventory as much as possible. Remove ALL hats, robes, boots, and mounts you care about (other than what you have equipped) from your inventory. Items in these categories get deleted.")
-    pyautogui.moveTo(1920/2,1080/2)
-    print("4. Your mouse has been moved to the monitor where Wizard101 should be placed. Please move the window to that monitor.")
-    input("Press ENTER to start the bot. After hitting ENTER, begin the battle you wish to farm..")
+    """Provide basic instructions to the user
+    """
+    msg = """
+1. Set your Wizard101 to be 1920x1080, borderless windowed mode.
+2. In combat, take a screenshot of a small part of your card's picture and
+   save it in the right folder if the asset doesn't already exist.
+3. Clear your inventory as much as possible. Remove ALL hats, robes, boots,
+   and mounts you care about (other than what you have equipped) from your
+   inventory. Items in these categories get deleted.
+"""
+    print(msg)
+    pyautogui.moveTo(SCREEN_OFFSET[0] + 1920/2, SCREEN_OFFSET[1] + 1080/2)
+    msg = """
+4. Your mouse has been moved to the monitor where Wizard101 should be placed.
+   Please move the window to that monitor.
+
+Press ENTER to start the bot. After hitting ENTER, begin the battle you wish to farm.
+"""
+    print(msg)
+    input()
 
     #print("Starting in 5 seconds...")
     #time.sleep(5)
-    pyautogui.moveTo(250, 250)
+    pyautogui.moveTo(SCREEN_OFFSET[0] + 250, SCREEN_OFFSET[1] + 250)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(module)s:%(funcName)s:%(lineno)d %(message)s")
+    logging.basicConfig(level=logging.INFO, format=(
+        "%(asctime)s "
+        "%(levelname)s "
+        "%(module)s:%(funcName)s:%(lineno)d "
+        "%(message)s"))
     instructions()
-    couchpotato_helper()
+    couchpotatoes()
