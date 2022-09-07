@@ -129,6 +129,11 @@ class Position(Enum):
         return self.click_position[1]
 
     @property
+    def click(self):
+        """The screen location on which to click to select this position in the battle."""
+        return self.click_position
+
+    @property
     def pip_left(self):
         """The X screen location from which to start looking for pips for this position."""
         return self.pip_position[0]
@@ -137,6 +142,11 @@ class Position(Enum):
     def pip_top(self):
         """The Y screen location from which to start looking for pips for this position."""
         return self.pip_position[1]
+
+    @property
+    def pips(self):
+        """The screen location from which to start looking for pips for this position."""
+        return self.pip_position
 
     def __str__(self):
         return self.name
@@ -155,7 +165,7 @@ def find_image(image):
     Raises:
         pyautogui.ImageNotFoundException: Image was not found on the screen.
     """
-    return pyautogui.locateOnScreen(image, confidence=0.80)
+    return pyautogui.locateOnScreen(image, confidence=0.90)
 
 def move_mouse_to(location, duration=0.25):
     """Move the mouse to the given cursor location over the given time period
@@ -230,7 +240,7 @@ def safe_cast_spell(spell):
         pyautogui.ImageNotFoundException: The spell was not found on the screen.
     """
     safe_click_image(spell)
-    pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
+    pyautogui.move(0, -200, duration=.1, tween=pyautogui.easeOutQuad)
 
 
 def hold(button, milliseconds):
@@ -623,6 +633,8 @@ def help_fight_4pip_aoe_battle(position):
             cast_spells([CONST.FIGHT_SPELL_SPIRIT_BLADE], position)
         elif find_image(CONST.FIGHT_SPELL_BLADE):
             cast_spells([CONST.FIGHT_SPELL_BLADE], position)
+        else:
+            pass_turn()
         activity = find_one_of_images([CONST.FIGHT_PASS, CONST.IDLE], 120, .5)
     log.info("Battle complete")
 
@@ -675,6 +687,36 @@ def couchpotatoes():
             print("No more potions. Guess we're done farming!")
             raise SystemExit from no_potions
 
+def kraken():
+    """Logic to farm the Kraken.
+
+    This scenario waits for a battle to start.  It expects to be in triton lane at
+    Kraken Isle and battling the Kraken.
+    """
+    while True:
+        for until_out_of_mana in range(6):
+            # 40 battles
+            for until_backpack_full in range(20):
+                log.info("until_out_of_mana = %d, until_backpack_full = %d",
+                         until_out_of_mana, until_backpack_full)
+                fight_4pip_aoe_battle()
+                hold('d', 250)
+                hold('w', 1000)
+            hold('s', 1000)
+            hold('d', 250)
+            hold('s', 2500)
+            clear_inventory()
+            hold('w', 2500)
+            hold('a', 250)
+            hold('w', 1000)
+
+        # pop a potion to continue farming -- 320 mana used
+        try:
+            safe_click_image(CONST.POTION)
+        except pyautogui.ImageNotFoundException as no_potions:
+            print("No more potions. Guess we're done farming!")
+            raise SystemExit from no_potions
+
 def rattlebones():
     """Logic to farm Rattlebones Exalted Duels.
 
@@ -682,7 +724,7 @@ def rattlebones():
     Savarstaad Pass and battling the Splithoofs.
     """
     while True:
-        for battles_before_popping_a_potion in range(2):
+        for battles_before_popping_a_potion in range(3):
             # 40 battles
             for battles_before_clearing_inventory in range(40):
                 log.info(("battles_before_popping_a_potion = %d, "
@@ -737,4 +779,4 @@ if __name__ == "__main__":
         "%(module)s:%(funcName)s:%(lineno)d "
         "%(message)s"))
     instructions()
-    couchpotatoes()
+    kraken()
