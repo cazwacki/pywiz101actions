@@ -483,6 +483,7 @@ def trash_all_items(category):
     """
     log.info("Trashing all %s.", category)
     safe_click_image(category)
+    pyautogui.move(0, -200, duration=.1, tween=pyautogui.easeOutQuad)
     x_loc, y_loc = pyautogui.center(find_image(CONST.INV_EQUIPPED))
     pyautogui.moveTo(x_loc+100, y_loc+50)
     time.sleep(0.1)
@@ -494,6 +495,7 @@ def trash_all_items(category):
         except pyautogui.ImageNotFoundException:
             break
         safe_click_image(CONST.INV_TRASH_CONFIRM)
+        time.sleep(0.25)
 
 def feed_pet_all_items(category):
     """Feeds non-equipped items in this category to the current pet.
@@ -504,6 +506,7 @@ def feed_pet_all_items(category):
     """
     log.info("Feeding pet all %s.", category)
     safe_click_image(category)
+    pyautogui.move(0, -200, duration=.1, tween=pyautogui.easeOutQuad)
     x_loc, y_loc = pyautogui.center(find_image(CONST.INV_EQUIPPED))
     pyautogui.moveTo(x_loc+100, y_loc+50)
     time.sleep(0.1)
@@ -694,8 +697,7 @@ def kraken():
     Kraken Isle and battling the Kraken.
     """
     while True:
-        for until_out_of_mana in range(6):
-            # 40 battles
+        for until_out_of_mana in range(60000):
             for until_backpack_full in range(20):
                 log.info("until_out_of_mana = %d, until_backpack_full = %d",
                          until_out_of_mana, until_backpack_full)
@@ -703,11 +705,7 @@ def kraken():
                 hold('d', 250)
                 hold('w', 1000)
             hold('s', 1000)
-            hold('d', 250)
-            hold('s', 2500)
             clear_inventory()
-            hold('w', 2500)
-            hold('a', 250)
             hold('w', 1000)
 
         # pop a potion to continue farming -- 320 mana used
