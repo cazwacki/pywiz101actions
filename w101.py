@@ -165,7 +165,7 @@ def find_image(image):
     Raises:
         pyautogui.ImageNotFoundException: Image was not found on the screen.
     """
-    return pyautogui.locateOnScreen(image, confidence=0.90)
+    return pyautogui.locateOnScreen(image, confidence=0.95)
 
 def move_mouse_to(location, duration=0.25):
     """Move the mouse to the given cursor location over the given time period
@@ -538,10 +538,10 @@ def clear_inventory():
         feed_pet_all_items(CONST.INV_ATHAMES)
         feed_pet_all_items(CONST.INV_RINGS)
         trash_all_items(CONST.INV_PETS)
-        trash_all_items(CONST.INV_MOUNTS)
+        #trash_all_items(CONST.INV_MOUNTS)
     pyautogui.press(CONST.INV_OPEN_CLOSE)
 
-def pass_turn(position = Position.SUN):
+def pass_turn(do_blade=True, position = Position.SUN):
     """Cannot attack, so pass this turn in battle.
 
     If the current deck has blades, if the current hand has a blade, cast that instead
@@ -552,7 +552,7 @@ def pass_turn(position = Position.SUN):
         position (Position, optional): The position that should benefit from passing this
             turn. Defaults to Position.SUN.
     """
-    if not try_to_blade(position):
+    if not do_blade or not try_to_blade(position):
         log.info("Passing since could not blade.")
         safe_click_image(CONST.FIGHT_PASS)
         pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
@@ -704,9 +704,46 @@ def kraken():
                 fight_4pip_aoe_battle()
                 hold('d', 250)
                 hold('w', 1000)
-            hold('s', 1000)
+            hold('s', 2000)
             clear_inventory()
-            hold('w', 1000)
+            hold('w', 1500)
+
+        # pop a potion to continue farming -- 320 mana used
+        try:
+            safe_click_image(CONST.POTION)
+        except pyautogui.ImageNotFoundException as no_potions:
+            print("No more potions. Guess we're done farming!")
+            raise SystemExit from no_potions
+
+def be_a_leach_in_battle():
+    """Just pass every turn"""
+    log.info("Leaching in the battle")
+    wait_for_image(CONST.FIGHT_PASS)
+    activity = CONST.FIGHT_PASS
+    while activity == CONST.FIGHT_PASS:
+        safe_click_image(CONST.FIGHT_PASS)
+        pyautogui.move(0, -100, duration=.1, tween=pyautogui.easeOutQuad)
+        time.sleep(1)
+        activity = find_one_of_images([CONST.FIGHT_PASS, CONST.IDLE], 120, .5)
+    log.info("Battle complete")
+
+def be_a_leach():
+    """Logic to pass every turn and let someone else do the fighting to leach loot.
+
+    This scenario waits for a battle to start.  Clicks pass until the battle ends, moves a little,
+    and then does it all again.
+    """
+    while True:
+        for until_out_of_mana in range(60000):
+            for until_backpack_full in range(15):
+                log.info("until_out_of_mana = %d, until_backpack_full = %d",
+                         until_out_of_mana, until_backpack_full)
+                be_a_leach_in_battle()
+                hold('w', 300)
+                hold('s', 100)
+            hold('s', 2000)
+            clear_inventory()
+            hold('w', 1500)
 
         # pop a potion to continue farming -- 320 mana used
         try:
@@ -777,4 +814,7 @@ if __name__ == "__main__":
         "%(module)s:%(funcName)s:%(lineno)d "
         "%(message)s"))
     instructions()
-    kraken()
+    clear_inventory()
+    #kraken()
+    #be_a_leach()
+    couchpotatoes()
